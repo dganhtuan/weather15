@@ -6,4 +6,4 @@ Description: An awesome Orion tweak!
 Maintainer: Anh Tuan
 Author: Anh Tuan
 Section: Tweaks
-Depends: ${ORION}, firmware (>= 12.2)
+Depends: ${ORION}, firmware (>= 12.2), com.peterdev.libpddokdo
