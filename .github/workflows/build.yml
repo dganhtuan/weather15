@@ -1,0 +1,42 @@
+name: Build Weather15 Swift
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      THEOS: ${{ github.workspace }}/theos
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Theos & Dependencies
+        run: |
+          brew install ldid
+          git clone --recursive https://github.com/theos/theos.git $THEOS
+          curl -LO https://github.com/theos/sdks/archive/master.zip
+          unzip master.zip
+          mv sdks-master/* $THEOS/sdks/
+          rm -rf master.zip sdks-master
+          
+          # TẢI THƯ VIỆN DOKDO (BẮT BUỘC ĐỂ KHÔNG LỖI)
+          curl -LO https://github.com/peterprd/libpddokdo/raw/master/libpddokdo.dylib
+          curl -LO https://raw.githubusercontent.com/peterprd/libpddokdo/master/PDDokdo.h
+          mkdir -p $THEOS/lib $THEOS/include
+          mv libpddokdo.dylib $THEOS/lib/
+          mv PDDokdo.h $THEOS/include/
+
+      - name: Build Tweak
+        run: |
+          make clean
+          make package THEOS_PACKAGE_SCHEME=rootless TARGET="iphone:clang:14.5:15.0" SYSROOT="$THEOS/sdks/iPhoneOS14.5.sdk"
+
+      - name: Upload DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: Weather15-DEB
+          path: packages/*.deb

@@ -1,0 +1,9 @@
+Package: com.tuan.weather15
+Name: weather15
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: An awesome Orion tweak!
+Maintainer: Anh Tuan
+Author: Anh Tuan
+Section: Tweaks
+Depends: ${ORION}, firmware (>= 12.2)
