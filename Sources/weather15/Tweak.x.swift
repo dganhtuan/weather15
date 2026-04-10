@@ -27,7 +27,7 @@ class DateViewControllerHook: ClassHook<UIViewController> {
     static let targetName = "SBFLockScreenDateViewController"
     
     // AN TOÀN: Dùng dấu "?" để không khởi tạo sớm gây Crash
-    @Property(.nonatomic, .retain) var weatherView: WLSView? = nill
+    @Property(.nonatomic, .retain) var weatherView: WLSView? = nil
     
     func viewDidLoad() {
         orig.viewDidLoad()
