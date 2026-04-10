@@ -62,10 +62,7 @@ class DateViewControllerHook: ClassHook<UIViewController> {
     }
     
     func _startUpdateTimer() {
-        // Dùng Optional chaining để chống lỗi Nil
-        guard let origImpl = orig.responds(to: #selector(_startUpdateTimer)) else { return }
         orig._startUpdateTimer()
-        
         if Prefs.enabled {
             self.weatherView?.updateWeather()
         }
