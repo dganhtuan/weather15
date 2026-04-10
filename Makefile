@@ -9,7 +9,6 @@ TWEAK_NAME = weather15
 weather15_FILES = $(shell find Sources/weather15 -name '*.swift') $(shell find Sources/weather15C -name '*.m' -o -name '*.c' -o -name '*.mm' -o -name '*.cpp')
 weather15_SWIFTFLAGS = -ISources/weather15C/include
 weather15_CFLAGS = -fobjc-arc -ISources/weather15C/include
-weather15_LIBRARIES = pddokdo
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
