@@ -1,7 +1,6 @@
 import Orion
 import UIKit
 
-// 1. KHO CHỨA CÀI ĐẶT
 struct Prefs {
     static var enabled = true
     static var yOffset: CGFloat = 0.0
@@ -10,75 +9,69 @@ struct Prefs {
         CFPreferencesAppSynchronize("com.tuan.weather15" as CFString)
         let path = "/var/jb/var/mobile/Library/Preferences/com.tuan.weather15.plist"
         guard let dict = NSDictionary(contentsOfFile: path) as? [String: Any] else { return }
-
         enabled = dict["enabled"] as? Bool ?? true
         yOffset = dict["yOffset"] as? CGFloat ?? 0.0
     }
 }
 
-// 2. HOOK ĐỂ DỜI TRỤC Y CẢ CỤM ĐỒNG HỒ (Từ bài học SimpleLS15)
 class DateViewHook: ClassHook<UIView> {
     static let targetName = "SBFLockScreenDateView"
-
     func setFrame(_ frame: CGRect) {
         var newFrame = frame
-        if Prefs.enabled {
-            newFrame.origin.y += Prefs.yOffset
-        }
+        if Prefs.enabled { newFrame.origin.y += Prefs.yOffset }
         orig.setFrame(newFrame)
     }
 }
 
-// 3. HOOK ĐỂ NHÉT THỜI TIẾT VÀO MÀN HÌNH (Từ mã nguồn WeatherLS)
 class DateViewControllerHook: ClassHook<UIViewController> {
     static let targetName = "SBFLockScreenDateViewController"
     
-    // Thêm một View thời tiết vào
-    @Property(.nonatomic, .retain) var weatherView = WLSView()
+    // AN TOÀN: Dùng dấu "?" để không khởi tạo sớm gây Crash
+    @Property(.nonatomic, .retain) var weatherView: WLSView?
     
     func viewDidLoad() {
         orig.viewDidLoad()
         guard Prefs.enabled else { return }
         
-        weatherView = WLSView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
-        target.view.addSubview(weatherView)
+        // Chỉ khởi tạo khi Apple đã load xong màn hình
+        let wView = WLSView(frame: .zero)
+        self.weatherView = wView
+        target.view.addSubview(wView)
     }
     
     func viewWillAppear(_ animated: Bool) {
         orig.viewWillAppear(animated)
-        guard Prefs.enabled else {
-            weatherView.isHidden = true
-            return
+        guard Prefs.enabled, let wView = self.weatherView else { 
+            self.weatherView?.isHidden = true
+            return 
         }
-        weatherView.isHidden = false
         
-        // Đặt vị trí thời tiết nằm ngay bên dưới đồng hồ
-        var frame = weatherView.frame
-        frame.origin.x = (target.view.frame.width / 2) - 40 // Căn giữa màn hình
-        frame.origin.y = target.view.frame.maxY + 10 // Cách đồng hồ 10 pixel
-        weatherView.frame = frame
+        wView.isHidden = false
         
-        // Lấy màu sắc của đồng hồ để gán cho chữ thời tiết
-        if let timeLabel = target.value(forKey: "_timeLabel") as? UIView,
-           let legibility = timeLabel.value(forKey: "_legibilitySettings") as? NSObject,
-           let color = legibility.value(forKey: "primaryColor") as? UIColor {
-            weatherView.temp_label.textColor = color
-        } else {
-            weatherView.temp_label.textColor = .white
-        }
+        // Tính toán tọa độ và kích thước an toàn
+        wView.frame = CGRect(x: (target.view.frame.width / 2) - 40, 
+                             y: target.view.frame.maxY + 10, 
+                             width: 80, height: 80)
+        
+        // AN TOÀN TỐI ĐA: Bỏ KVC móc màu dễ crash, đổi sang chữ Trắng đổ bóng đen siêu đẹp và bất tử
+        wView.temp_label.textColor = .white
+        wView.temp_label.layer.shadowColor = UIColor.black.cgColor
+        wView.temp_label.layer.shadowOffset = CGSize(width: 1, height: 1)
+        wView.temp_label.layer.shadowOpacity = 0.8
+        wView.temp_label.layer.shadowRadius = 2
     }
     
-    // Cập nhật lại thời tiết mỗi khi đồng hồ nhảy số
-    // Note: Dùng AnyObject để tránh lỗi Swift
     func _startUpdateTimer() {
+        // Dùng Optional chaining để chống lỗi Nil
+        guard let origImpl = orig.responds(to: #selector(_startUpdateTimer)) else { return }
         orig._startUpdateTimer()
+        
         if Prefs.enabled {
-            weatherView.updateWeather()
+            self.weatherView?.updateWeather()
         }
     }
 }
 
-// 4. KHỞI TẠO TWEAK
 struct Weather15: Tweak {
     init() {
         Prefs.load()
